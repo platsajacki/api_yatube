@@ -18,3 +18,11 @@ class PostSerializer(serializers.ModelSerializer):
             'author', 'image', 'group'
         )
         read_only_fields = ('author',)
+
+
+class GroupSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Group
+        fields = ('id', 'title', 'description')
+        read_only_fields = ('slug',)

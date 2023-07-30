@@ -1,8 +1,8 @@
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
 
-from .serialisers import PostSerializer
-from posts.models import Post
+from .serialisers import PostSerializer, GroupSerializer
+from posts.models import Post, Group
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -21,3 +21,9 @@ class PostViewSet(viewsets.ModelViewSet):
         if instance.author != self.request.user:
             raise PermissionDenied('Удаление чужого контента запрещено!')
         super().perform_destroy(instance)
+
+
+class GroupViewSet(viewsets.ModelViewSet):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    http_method_names = ['get', ]
