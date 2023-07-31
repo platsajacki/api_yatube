@@ -1,21 +1,16 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
 
-from .serialisers import PostSerializer, GroupSerializer
-from posts.models import Post, Group
+from .serialisers import PostSerializer, GroupSerializer, CommentSerializer
+from posts.models import Post, Group, Comment
 
 
-class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.all()
-    serializer_class = PostSerializer
-
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-
+class UpdateDestroyMixin:
     def perform_update(self, serializer):
         if serializer.instance.author != self.request.user:
             raise PermissionDenied('Изменение чужого контента запрещено!')
-        super(PostViewSet, self).perform_update(serializer)
+        super().perform_update(serializer)
 
     def perform_destroy(self, instance):
         if instance.author != self.request.user:
@@ -23,7 +18,25 @@ class PostViewSet(viewsets.ModelViewSet):
         super().perform_destroy(instance)
 
 
-class GroupViewSet(viewsets.ModelViewSet):
+class PostViewSet(UpdateDestroyMixin, viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+
+class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    http_method_names = ['get', ]
+
+
+class CommentViewSet(UpdateDestroyMixin, viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        return Comment.objects.filter(post_id=self.kwargs['id'])
+
+    def perform_create(self, serializer):
+        post = get_object_or_404(Post, id=self.kwargs['id'])
+        serializer.save(author=self.request.user, post=post)
