@@ -19,7 +19,12 @@ class UpdateDestroyMixin:
 
 
 class PostViewSet(UpdateDestroyMixin, viewsets.ModelViewSet):
-    queryset = Post.objects.all()
+    queryset = (
+        Post.objects
+        .select_related('author')
+        .prefetch_related('comments', 'group')
+        .all()
+    )
     serializer_class = PostSerializer
 
     def perform_create(self, serializer):
@@ -35,7 +40,8 @@ class CommentViewSet(UpdateDestroyMixin, viewsets.ModelViewSet):
     serializer_class = CommentSerializer
 
     def get_queryset(self):
-        return Comment.objects.filter(post_id=self.kwargs['id'])
+        post = get_object_or_404(Post.objects.filter(id=self.kwargs['id']))
+        return Comment.objects.filter(post=post).select_related('author')
 
     def perform_create(self, serializer):
         post = get_object_or_404(Post, id=self.kwargs['id'])
