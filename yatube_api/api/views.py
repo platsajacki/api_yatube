@@ -3,7 +3,7 @@ from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
 
 from .serialisers import PostSerializer, GroupSerializer, CommentSerializer
-from posts.models import Post, Group, Comment
+from posts.models import Post, Group
 
 
 class UpdateDestroyMixin:
@@ -19,12 +19,7 @@ class UpdateDestroyMixin:
 
 
 class PostViewSet(UpdateDestroyMixin, viewsets.ModelViewSet):
-    queryset = (
-        Post.objects
-        .select_related('author')
-        .prefetch_related('comments', 'group')
-        .all()
-    )
+    queryset = Post.objects.select_related('author')
     serializer_class = PostSerializer
 
     def perform_create(self, serializer):
@@ -39,10 +34,11 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
 class CommentViewSet(UpdateDestroyMixin, viewsets.ModelViewSet):
     serializer_class = CommentSerializer
 
+    def get_post(self):
+        return get_object_or_404(Post, id=self.kwargs['id'])
+
     def get_queryset(self):
-        post = get_object_or_404(Post.objects.filter(id=self.kwargs['id']))
-        return Comment.objects.filter(post=post).select_related('author')
+        return self.get_post().comments
 
     def perform_create(self, serializer):
-        post = get_object_or_404(Post, id=self.kwargs['id'])
-        serializer.save(author=self.request.user, post=post)
+        serializer.save(author=self.request.user, post=self.get_post())
